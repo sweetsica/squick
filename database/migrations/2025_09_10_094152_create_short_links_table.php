@@ -13,6 +13,17 @@ return new class extends Migration
     {
         Schema::create('short_links', function (Blueprint $table) {
             $table->id();
+            $table->string('name')->nullable();
+            $table->string('title')->nullable();
+            $table->string('thumbnail')->nullable();
+            $table->string('type')->nullable();
+            $table->string('url')->nullable();
+            $table->string('shortUrl')->nullable();
+            $table->string('path')->nullable();
+            $table->string('extend')->nullable();
+            $table->string('size')->nullable();
+            $table->string('status')->default(1);
+            $table->json('userAccess')->nullable();
             $table->timestamps();
         });
     }

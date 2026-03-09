@@ -15,7 +15,7 @@ return new class extends Migration {
         Schema::create('report_uploads', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('original_name')->after('name')->nullable();
+            $table->string('original_name')->nullable();
             $table->string('file_path');
             $table->string('file_url');
             $table->string('token')->nullable();

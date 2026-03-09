@@ -1,11 +1,28 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ShortLinkController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/upload', function () {
+    return view('upload');
+})->name('upload');
 
-Route::get('/shortlink', [ShortLinkController::class,'index']);
+Route::post('/upload', [App\Http\Controllers\Api\ReportUpload::class, 'store']);
+
+Route::post('/result', function (Illuminate\Http\Request $request) {
+    return view('result', ['files' => $request->get('files', [])]);
+})->name('result');

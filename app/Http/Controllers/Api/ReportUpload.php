@@ -59,9 +59,18 @@ class ReportUpload extends Controller
             // Generate unique filename: name_timestamp_random.ext
             $unique_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . time() . '_' . Str::random(5) . '.' . $extension;
 
-            // Save to storage
-            $path = Storage::putFileAs("public/report/" . $date, $file, $unique_name);
-            $link_file = URL::to('/') . Storage::url('report/' . $date . '/' . $unique_name);
+            // Save to public directory directly
+            $publicPath = "report/" . $date;
+            $destinationPath = public_path($publicPath);
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $file->move($destinationPath, $unique_name);
+
+            $path = $publicPath . '/' . $unique_name;
+            $link_file = url($path);
 
             // Get file type (extension)
             $type = $extension;
@@ -96,7 +105,7 @@ class ReportUpload extends Controller
 
     public function getFile(Request $request)
     {
-        $link = asset('storage/report/' . $request->path);
+        $link = url('report/' . $request->path);
         return response()->json($link);
     }
 

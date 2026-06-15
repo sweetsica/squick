@@ -33,6 +33,7 @@ Route::get('/dashboard', [FileManagerController::class, 'index'])->name('dashboa
 
 Route::prefix('fm')->group(function () {
     Route::get('/files', [FileManagerController::class, 'listFiles']);
+    Route::get('/upload-dates', [FileManagerController::class, 'uploadDates']);
     Route::get('/folder-tree', [FileManagerController::class, 'folderTree']);
     Route::post('/folder', [FileManagerController::class, 'createFolder']);
     Route::post('/upload', [FileManagerController::class, 'upload']);

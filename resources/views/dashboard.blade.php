@@ -56,7 +56,7 @@
 
         {{-- Show hidden toggle --}}
         <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-            <input type="checkbox" x-model="showHidden" @change="loadFiles()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
+            <input type="checkbox" x-model="showHidden" @change="loadFiles(); loadUploadDates();" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
             <span>Ẩn/Hiện</span>
         </label>
     </header>
@@ -123,11 +123,13 @@
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ngày tải lên</span>
             </div>
             <nav class="flex-1 overflow-y-auto fm-scrollbar p-1.5">
-                <template x-for="date in getUploadDates()" :key="date">
+                <template x-for="d in uploadDates" :key="d.date">
                     <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm"
-                         @click="navigateToDate(date)">
+                         :class="{ 'active': currentFolder === ('date_' + d.date) }"
+                         @click="navigateToDate(d.date)">
                         <svg class="w-4 h-4 shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
-                        <span class="truncate" x-text="date"></span>
+                        <span class="truncate flex-1" x-text="d.date"></span>
+                        <span class="text-[10px] text-gray-400" x-text="d.count"></span>
                     </div>
                 </template>
             </nav>
@@ -180,7 +182,7 @@
                     <button @click="viewMode = 'list'" class="p-1.5 rounded-md transition" :class="viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'" title="List">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
                     </button>
-                    <button @click="loadFiles(); loadFolderTree(); loadStats();" class="p-1.5 rounded-md text-gray-400 hover:text-gray-600 transition" title="Làm mới">
+                    <button @click="loadFiles(); loadFolderTree(); loadStats(); loadUploadDates();" class="p-1.5 rounded-md text-gray-400 hover:text-gray-600 transition" title="Làm mới">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
                     </button>
                 </div>
@@ -221,7 +223,10 @@
                              @contextmenu.prevent="onContextMenu($event, item, false)">
                             {{-- Thumbnail / Icon --}}
                             <div class="w-full aspect-square max-h-40 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-100">
-                                <template x-if="item.is_folder">
+                                <template x-if="item.is_date_folder">
+                                    <svg class="w-16 h-16 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
+                                </template>
+                                <template x-if="item.is_folder && !item.is_date_folder">
                                     <svg class="w-16 h-16 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                                 </template>
                                 <template x-if="!item.is_folder && isImage(item.type)">
@@ -262,7 +267,10 @@
                              @contextmenu.prevent="onContextMenu($event, item, false)">
                             {{-- Icon --}}
                             <div class="w-12 h-12 flex items-center justify-center">
-                                <template x-if="item.is_folder">
+                                <template x-if="item.is_date_folder">
+                                    <svg class="w-12 h-12 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
+                                </template>
+                                <template x-if="item.is_folder && !item.is_date_folder">
                                     <svg class="w-12 h-12 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                                 </template>
                                 <template x-if="!item.is_folder && isImage(item.type)">
@@ -305,7 +313,10 @@
                                     @dblclick="item.is_folder ? navigateTo(item.id) : previewFile(item)"
                                     @contextmenu.prevent="onContextMenu($event, item, false)">
                                     <td class="py-2 pl-2">
-                                        <template x-if="item.is_folder">
+                                        <template x-if="item.is_date_folder">
+                                            <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
+                                        </template>
+                                        <template x-if="item.is_folder && !item.is_date_folder">
                                             <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                                         </template>
                                         <template x-if="!item.is_folder">
@@ -395,7 +406,7 @@
                 </div>
 
                 {{-- Actions --}}
-                <div class="space-y-1.5 pt-2 border-t border-gray-100">
+                <div class="space-y-1.5 pt-2 border-t border-gray-100" x-show="!infoPanel?.is_date_folder">
                     <button @click="openRenameModal(infoPanel)" class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-50 flex items-center gap-2 text-gray-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
                         Đổi tên
@@ -459,10 +470,12 @@
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Xem file
                 </button>
-                <button @click="showInfo(contextMenu.item.id); contextMenu.show=false" class="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2.5 text-gray-700">
+                <button x-show="!contextMenu.item?.is_date_folder" @click="showInfo(contextMenu.item.id); contextMenu.show=false" class="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2.5 text-gray-700">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
                     Thông tin
                 </button>
+                <template x-if="!contextMenu.item?.is_date_folder">
+                <div>
                 <div class="border-t border-gray-100 my-1"></div>
                 <button @click="openRenameModal(contextMenu.item); contextMenu.show=false" class="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2.5 text-gray-700">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
@@ -485,6 +498,8 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                     Xóa
                 </button>
+                </div>
+                </template>
             </div>
         </template>
     </div>
@@ -642,6 +657,7 @@
             // State
             items: [],
             folderTree: [],
+            uploadDates: [],
             breadcrumb: [{ id: null, name: 'Root' }],
             currentFolder: null,
             selectedItems: [],
@@ -685,7 +701,7 @@
             csrfToken: document.querySelector('meta[name="csrf-token"]').content,
 
             async init() {
-                await Promise.all([this.loadFiles(), this.loadFolderTree(), this.loadStats()]);
+                await Promise.all([this.loadFiles(), this.loadFolderTree(), this.loadStats(), this.loadUploadDates()]);
                 document.addEventListener('click', () => { this.contextMenu.show = false; });
             },
 
@@ -712,7 +728,11 @@
                 this.loading = true;
                 try {
                     const params = new URLSearchParams();
-                    if (this.currentFolder) params.set('parent_id', this.currentFolder);
+                    if (typeof this.currentFolder === 'string' && this.currentFolder.startsWith('date_')) {
+                        params.set('date', this.currentFolder.replace('date_', ''));
+                    } else if (this.currentFolder) {
+                        params.set('parent_id', this.currentFolder);
+                    }
                     if (this.showHidden) params.set('show_hidden', '1');
                     if (this.searchQuery) params.set('search', this.searchQuery);
 
@@ -729,6 +749,14 @@
             async loadFolderTree() {
                 try {
                     this.folderTree = await this.apiFetch('/fm/folder-tree');
+                } catch (e) { /* silent */ }
+            },
+
+            async loadUploadDates() {
+                try {
+                    const params = new URLSearchParams();
+                    if (this.showHidden) params.set('show_hidden', '1');
+                    this.uploadDates = await this.apiFetch(`/fm/upload-dates?${params}`);
                 } catch (e) { /* silent */ }
             },
 
@@ -750,23 +778,8 @@
                 this.loadFiles();
             },
 
-            getUploadDates() {
-                const dates = new Set();
-                this.items.forEach(item => {
-                    if (item.created_at) {
-                        const date = item.created_at.split(' ')[0];
-                        dates.add(date);
-                    }
-                });
-                return Array.from(dates).sort().reverse();
-            },
-
             navigateToDate(date) {
-                this.currentFolder = null;
-                this.selectedItems = [];
-                this.infoPanel = null;
-                this.searchQuery = date;
-                this.loadFiles();
+                this.navigateTo('date_' + date);
             },
 
             selectItem(item, event) {
@@ -777,7 +790,11 @@
                 } else {
                     this.selectedItems = [item.id];
                 }
-                this.showInfo(item.id);
+                if (item.is_date_folder) {
+                    this.infoPanel = item;
+                } else {
+                    this.showInfo(item.id);
+                }
             },
 
             onContextMenu(event, item, isTree) {
@@ -877,6 +894,7 @@
                     this.loadFiles();
                     this.loadFolderTree();
                     this.loadStats();
+                    this.loadUploadDates();
                 } catch (e) {
                     this.showToast('Lỗi: ' + e.message, 'error');
                 }
@@ -945,6 +963,7 @@
                     this.modals.upload = false;
                     this.loadFiles();
                     this.loadStats();
+                    this.loadUploadDates();
                 } catch (e) {
                     this.showToast('Lỗi upload: ' + e.message, 'error');
                 } finally {

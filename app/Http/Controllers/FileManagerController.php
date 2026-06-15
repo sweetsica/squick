@@ -19,8 +19,35 @@ class FileManagerController extends Controller
     public function listFiles(Request $request)
     {
         $parentId = $request->get('parent_id');
+        $dateFilter = $request->get('date');
         $showHidden = $request->boolean('show_hidden', false);
         $search = $request->get('search');
+
+        // Date virtual folder: list root-level files uploaded on that date
+        if ($dateFilter) {
+            $query = ReportUpload::query()
+                ->whereNull('parent_id')
+                ->where('is_folder', false);
+
+            if (!$showHidden) {
+                $query->visible();
+            }
+
+            $items = $query->get()
+                ->filter(fn ($item) => $item->created_at?->format('d-m-Y') === $dateFilter)
+                ->sortBy('original_name')
+                ->values()
+                ->map(fn ($item) => $this->formatItem($item));
+
+            return response()->json([
+                'items' => $items,
+                'breadcrumb' => [
+                    ['id' => null, 'name' => 'Root'],
+                    ['id' => 'date_' . $dateFilter, 'name' => $dateFilter],
+                ],
+                'current_folder' => 'date_' . $dateFilter,
+            ]);
+        }
 
         $query = ReportUpload::query()->inFolder($parentId);
 
@@ -35,27 +62,48 @@ class FileManagerController extends Controller
             });
         }
 
+        // At root, loose files (no parent) are grouped into virtual date folders
+        if ($parentId === null && !$search) {
+            $query->where('is_folder', true);
+        }
+
         $items = $query->orderByDesc('is_folder')
                        ->orderBy('original_name')
                        ->get()
-                       ->map(function ($item) {
-                           return [
-                               'id' => $item->id,
-                               'name' => $item->original_name ?? $item->name,
-                               'unique_name' => $item->name,
-                               'type' => $item->type,
-                               'is_folder' => $item->is_folder,
-                               'is_hidden' => $item->is_hidden,
-                               'size' => $item->size,
-                               'formatted_size' => $item->formatted_size,
-                               'file_url' => $item->file_url,
-                               'file_path' => $item->file_path,
-                               'parent_id' => $item->parent_id,
-                               'created_at' => $item->created_at?->format('Y-m-d H:i:s'),
-                               'updated_at' => $item->updated_at?->format('Y-m-d H:i:s'),
-                               'children_count' => $item->is_folder ? $item->children()->count() : 0,
-                           ];
-                       });
+                       ->map(fn ($item) => $this->formatItem($item));
+
+        if ($parentId === null && !$search) {
+            $looseFiles = ReportUpload::query()->whereNull('parent_id')->where('is_folder', false);
+            if (!$showHidden) {
+                $looseFiles->visible();
+            }
+
+            $dateFolders = $looseFiles->get()
+                ->groupBy(fn ($item) => $item->created_at?->format('d-m-Y'))
+                ->map(function ($files, $date) {
+                    $size = $files->sum('size');
+                    return [
+                        'id' => 'date_' . $date,
+                        'name' => $date,
+                        'unique_name' => $date,
+                        'type' => 'folder',
+                        'is_folder' => true,
+                        'is_date_folder' => true,
+                        'is_hidden' => false,
+                        'size' => $size,
+                        'formatted_size' => $this->formatBytes($size),
+                        'file_url' => null,
+                        'file_path' => null,
+                        'parent_id' => null,
+                        'created_at' => $files->max('created_at')?->format('Y-m-d H:i:s'),
+                        'updated_at' => $files->max('updated_at')?->format('Y-m-d H:i:s'),
+                        'children_count' => $files->count(),
+                    ];
+                })
+                ->values();
+
+            $items = $items->concat($dateFolders);
+        }
 
         $breadcrumb = [['id' => null, 'name' => 'Root']];
         if ($parentId) {
@@ -70,6 +118,57 @@ class FileManagerController extends Controller
             'breadcrumb' => $breadcrumb,
             'current_folder' => $parentId,
         ]);
+    }
+
+    public function uploadDates(Request $request)
+    {
+        $showHidden = $request->boolean('show_hidden', false);
+
+        $query = ReportUpload::query()->whereNull('parent_id')->where('is_folder', false);
+        if (!$showHidden) {
+            $query->visible();
+        }
+
+        $dates = $query->get()
+            ->groupBy(fn ($item) => $item->created_at?->format('d-m-Y'))
+            ->map(fn ($files, $date) => [
+                'date' => $date,
+                'count' => $files->count(),
+                'sort' => Carbon::createFromFormat('d-m-Y', $date)->timestamp,
+            ])
+            ->sortByDesc('sort')
+            ->values()
+            ->map(fn ($d) => ['date' => $d['date'], 'count' => $d['count']]);
+
+        return response()->json($dates);
+    }
+
+    private function formatItem(ReportUpload $item): array
+    {
+        return [
+            'id' => $item->id,
+            'name' => $item->original_name ?? $item->name,
+            'unique_name' => $item->name,
+            'type' => $item->type,
+            'is_folder' => $item->is_folder,
+            'is_hidden' => $item->is_hidden,
+            'size' => $item->size,
+            'formatted_size' => $item->formatted_size,
+            'file_url' => $item->file_url,
+            'file_path' => $item->file_path,
+            'parent_id' => $item->parent_id,
+            'created_at' => $item->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $item->updated_at?->format('Y-m-d H:i:s'),
+            'children_count' => $item->is_folder ? $item->children()->count() : 0,
+        ];
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if (!$bytes) return '0 B';
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $i = (int) floor(log($bytes, 1024));
+        return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
     }
 
     public function folderTree()

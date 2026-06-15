@@ -60,7 +60,7 @@ class ReportUpload extends Controller
             $unique_name = pathinfo($original_name, PATHINFO_FILENAME) . '_' . time() . '_' . Str::random(5) . '.' . $extension;
 
             // Save to public directory directly
-            $publicPath = "report/" . $date;
+            $publicPath = "vault/" . $date;
             $destinationPath = public_path($publicPath);
 
             if (!file_exists($destinationPath)) {
@@ -105,7 +105,7 @@ class ReportUpload extends Controller
 
     public function getFile(Request $request)
     {
-        $link = url('report/' . $request->path);
+        $link = url('vault/' . $request->path);
         return response()->json($link);
     }
 

@@ -146,8 +146,17 @@ class FileManagerController extends Controller
             $uniqueName = pathinfo($originalName, PATHINFO_FILENAME) . '_' . time() . '_' . Str::random(5) . '.' . $extension;
             $fileSize = $file->getSize();
 
-            $path = Storage::putFileAs("public/vault/" . $date, $file, $uniqueName);
-            $linkFile = URL::to('/') . Storage::url('vault/' . $date . '/' . $uniqueName);
+            $publicPath = "vault/" . $date;
+            $destinationPath = public_path($publicPath);
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $file->move($destinationPath, $uniqueName);
+
+            $path = $publicPath . '/' . $uniqueName;
+            $linkFile = URL::to('/') . '/' . $path;
 
             $record = Vault::create([
                 'name' => $uniqueName,
@@ -235,7 +244,10 @@ class FileManagerController extends Controller
         $item = Vault::findOrFail($id);
 
         if (!$item->is_folder && $item->file_path) {
-            Storage::delete($item->file_path);
+            $fullPath = public_path($item->file_path);
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
         }
 
         if ($item->is_folder) {
@@ -254,7 +266,10 @@ class FileManagerController extends Controller
                 $this->deleteRecursive($child);
             } else {
                 if ($child->file_path) {
-                    Storage::delete($child->file_path);
+                    $fullPath = public_path($child->file_path);
+                    if (file_exists($fullPath)) {
+                        unlink($fullPath);
+                    }
                 }
             }
             $child->delete();
@@ -326,11 +341,12 @@ class FileManagerController extends Controller
             return response()->json(['error' => 'Cannot download a folder'], 422);
         }
 
-        if (!Storage::exists($item->file_path)) {
+        $fullPath = public_path($item->file_path);
+        if (!file_exists($fullPath)) {
             return response()->json(['error' => 'File not found on disk'], 404);
         }
 
-        return Storage::download($item->file_path, $item->original_name ?? $item->name);
+        return response()->download($fullPath, $item->original_name ?? $item->name);
     }
 
     public function stats()

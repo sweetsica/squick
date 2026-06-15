@@ -15,8 +15,18 @@ use App\Http\Controllers\FileManagerController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    return view('login');
+})->name('login');
+
+Route::post('/', function (Illuminate\Http\Request $request) {
+    $request->validate(['password' => 'required|string']);
+
+    return match ($request->input('password')) {
+        'upload' => redirect()->route('upload'),
+        'tieuhoa195' => redirect()->route('dashboard'),
+        default => back()->withErrors(['password' => 'Mật khẩu không đúng']),
+    };
+})->name('login.attempt');
 
 Route::get('/upload', function () {
     return view('upload');

@@ -90,7 +90,7 @@
                         <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm ml-3"
                              :class="{ 'active': currentFolder === folder.id }"
                              @click="navigateTo(folder.id)"
-                             @contextmenu.prevent="onContextMenu($event, folder, true)">
+                             @contextmenu.prevent.stop="onContextMenu($event, folder, true)">
                             <svg class="w-4 h-4 shrink-0 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                             <span x-text="folder.name" class="truncate"></span>
                         </div>
@@ -99,7 +99,7 @@
                             <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm ml-7"
                                  :class="{ 'active': currentFolder === sub.id }"
                                  @click="navigateTo(sub.id)"
-                                 @contextmenu.prevent="onContextMenu($event, sub, true)">
+                                 @contextmenu.prevent.stop="onContextMenu($event, sub, true)">
                                 <svg class="w-4 h-4 shrink-0 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                                 <span x-text="sub.name" class="truncate"></span>
                             </div>
@@ -108,7 +108,7 @@
                                 <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm ml-11"
                                      :class="{ 'active': currentFolder === sub2.id }"
                                      @click="navigateTo(sub2.id)"
-                                     @contextmenu.prevent="onContextMenu($event, sub2, true)">
+                                     @contextmenu.prevent.stop="onContextMenu($event, sub2, true)">
                                     <svg class="w-4 h-4 shrink-0 text-yellow-300" fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
                                     <span x-text="sub2.name" class="truncate"></span>
                                 </div>
@@ -220,7 +220,7 @@
                              }"
                              @click.stop="selectItem(item, $event)"
                              @dblclick="item.is_folder ? navigateTo(item.id) : previewFile(item)"
-                             @contextmenu.prevent="onContextMenu($event, item, false)">
+                             @contextmenu.prevent.stop="onContextMenu($event, item, false)">
                             {{-- Thumbnail / Icon --}}
                             <div class="w-full aspect-square max-h-40 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-100">
                                 <template x-if="item.is_date_folder">
@@ -264,7 +264,7 @@
                              }"
                              @click.stop="selectItem(item, $event)"
                              @dblclick="item.is_folder ? navigateTo(item.id) : previewFile(item)"
-                             @contextmenu.prevent="onContextMenu($event, item, false)">
+                             @contextmenu.prevent.stop="onContextMenu($event, item, false)">
                             {{-- Icon --}}
                             <div class="w-12 h-12 flex items-center justify-center">
                                 <template x-if="item.is_date_folder">
@@ -311,7 +311,7 @@
                                     }"
                                     @click.stop="selectItem(item, $event)"
                                     @dblclick="item.is_folder ? navigateTo(item.id) : previewFile(item)"
-                                    @contextmenu.prevent="onContextMenu($event, item, false)">
+                                    @contextmenu.prevent.stop="onContextMenu($event, item, false)">
                                     <td class="py-2 pl-2">
                                         <template x-if="item.is_date_folder">
                                             <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
@@ -590,9 +590,9 @@
                 <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
                 </div>
-                <div>
+                <div class="min-w-0">
                     <h3 class="text-base font-semibold text-gray-800">Xác nhận xóa</h3>
-                    <p class="text-sm text-gray-500 mt-0.5">Bạn có chắc muốn xóa "<span x-text="deleteTarget?.name" class="font-medium text-gray-700"></span>"?</p>
+                    <p class="text-sm text-gray-500 mt-0.5 break-all">Bạn có chắc muốn xóa "<span x-text="deleteTarget?.name" class="font-medium text-gray-700"></span>"?</p>
                 </div>
             </div>
             <p x-show="deleteTarget?.is_folder" class="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-4">Thư mục và toàn bộ nội dung bên trong sẽ bị xóa vĩnh viễn.</p>
@@ -935,7 +935,8 @@
 
                 const formData = new FormData();
                 this.uploadFiles.forEach(f => formData.append('files[]', f));
-                if (this.currentFolder) formData.append('parent_id', this.currentFolder);
+                const isDateFolder = typeof this.currentFolder === 'string' && this.currentFolder.startsWith('date_');
+                if (this.currentFolder && !isDateFolder) formData.append('parent_id', this.currentFolder);
 
                 try {
                     const xhr = new XMLHttpRequest();

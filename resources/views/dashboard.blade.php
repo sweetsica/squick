@@ -63,15 +63,16 @@
 
     <div class="flex flex-1 overflow-hidden">
 
-        {{-- Sidebar: Folder Tree --}}
+        {{-- Sidebar: Folder Tree + Upload Dates --}}
         <aside class="w-60 bg-white border-r border-gray-200 flex flex-col shrink-0">
+            {{-- Folders Section --}}
             <div class="px-3 py-2.5 border-b border-gray-100 flex items-center justify-between">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Thư mục</span>
                 <button @click="openNewFolderModal(null)" class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition" title="Tạo thư mục mới ở Root">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                 </button>
             </div>
-            <nav class="flex-1 overflow-y-auto fm-scrollbar p-1.5">
+            <nav class="flex-initial overflow-y-auto fm-scrollbar p-1.5" style="max-height: 40%">
                 {{-- Root --}}
                 <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm"
                      :class="{ 'active': currentFolder === null }"
@@ -113,6 +114,20 @@
                                 </div>
                             </template>
                         </template>
+                    </div>
+                </template>
+            </nav>
+
+            {{-- Upload Dates Section --}}
+            <div class="px-3 py-2.5 border-t border-b border-gray-100 flex items-center justify-between">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ngày tải lên</span>
+            </div>
+            <nav class="flex-1 overflow-y-auto fm-scrollbar p-1.5">
+                <template x-for="date in getUploadDates()" :key="date">
+                    <div class="tree-item flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm"
+                         @click="navigateToDate(date)">
+                        <svg class="w-4 h-4 shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/></svg>
+                        <span class="truncate" x-text="date"></span>
                     </div>
                 </template>
             </nav>
@@ -732,6 +747,25 @@
                 this.selectedItems = [];
                 this.infoPanel = null;
                 this.searchQuery = '';
+                this.loadFiles();
+            },
+
+            getUploadDates() {
+                const dates = new Set();
+                this.items.forEach(item => {
+                    if (item.created_at) {
+                        const date = item.created_at.split(' ')[0];
+                        dates.add(date);
+                    }
+                });
+                return Array.from(dates).sort().reverse();
+            },
+
+            navigateToDate(date) {
+                this.currentFolder = null;
+                this.selectedItems = [];
+                this.infoPanel = null;
+                this.searchQuery = date;
                 this.loadFiles();
             },
 

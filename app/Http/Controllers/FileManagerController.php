@@ -24,10 +24,6 @@ class FileManagerController extends Controller
 
         $query = ReportUpload::query();
 
-        if (!$showHidden) {
-            $query->visible();
-        }
-
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('original_name', 'like', "%{$search}%")
@@ -35,8 +31,7 @@ class FileManagerController extends Controller
             });
         }
 
-        $items = $query->orderByDesc('is_folder')
-                       ->orderBy('original_name')
+        $items = $query->orderBy('original_name')
                        ->get()
                        ->map(function ($item) {
                            return [
@@ -44,16 +39,10 @@ class FileManagerController extends Controller
                                'name' => $item->original_name ?? $item->name,
                                'unique_name' => $item->name,
                                'type' => $item->type,
-                               'is_folder' => $item->is_folder,
-                               'is_hidden' => $item->is_hidden,
-                               'size' => $item->size,
-                               'formatted_size' => $item->formatted_size,
                                'file_url' => $item->file_url,
                                'file_path' => $item->file_path,
-                               'parent_id' => $item->parent_id,
                                'created_at' => $item->created_at?->format('Y-m-d H:i:s'),
                                'updated_at' => $item->updated_at?->format('Y-m-d H:i:s'),
-                               'children_count' => $item->is_folder ? $item->children()->count() : 0,
                            ];
                        });
 
